@@ -1,0 +1,12 @@
+{
+  "name": "Performance Test Node Js Express & Golang Gin",
+  "version": "1.0.0",
+  "description": "",
+  "main": "example.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1", 
+    "p-test": "./k6 run --out json=reports/dist/report.json --out dashboard=report=reports/html/dashboard.html"
+  },
+  "author": "",
+  "license": "ISC"
+}
