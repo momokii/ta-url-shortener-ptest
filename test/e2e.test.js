@@ -11,28 +11,24 @@ export function handleSummary(data) {
 }
 
 let SCENARIO, SCENARIO_TYPE, DB_TYPE, BASE_URL // BASE ENV DATA
-let JWT, USER_TYPE, LONG_LINK, CUSTOM_LINK // APPENDIX ENV DATA
+let USER_TYPE, LONG_LINK, SHORT_LINK, CUSTOM_LINK, USERNAME, PASSWORD // APPENDIX ENV DATA
 
 // base env data 
 SCENARIO_TYPE = __ENV.SCENARIO
 DB_TYPE = __ENV.DB_TYPE
 
 BASE_URL = __ENV.SERVICE
-if(BASE_URL === 'golang') endpoint = __ENV.ENDPOINT_GOLANG
+if(BASE_URL === 'golang') BASE_URL = __ENV.ENDPOINT_GOLANG
 else BASE_URL = __ENV.ENDPOINT_NODE
 
 // appendix env data for this scenario
+PASSWORD = __ENV.PASSWORD
 USER_TYPE = __ENV.USER_TYPE
-if(USER_TYPE === 'admin') {
-    if(DB_TYPE === 'mongo') JWT = __ENV.JWT_ADMIN_NOSQL
-    else JWT = __ENV.JWT_ADMIN_SQL
-} else {
-    if(DB_TYPE === 'mongo') JWT = __ENV.JWT_USER_NOSQL
-    else JWT = __ENV.JWT_USER_SQL
-}
+if(USER_TYPE === 'admin') USERNAME = __ENV.USERNAME_ADMIN
+else USERNAME = __ENV.USERNAME_USER
 
 LONG_LINK = __ENV.LONG_LINK
-CUSTOM_LINK = __ENV.CUSTOM_LINK === 'true' ? true : false // if provided can use custom link, we need randomizer for custom link
+CUSTOM_LINK = __ENV.CUSTOM_LINK === 'true' ? true : false
 
 const SCENARIOS = {
     breakpoint: {
@@ -76,7 +72,7 @@ const SCENARIOS = {
     smoke: {
         executor: 'constant-vus',
         vus: 5,
-        duration: '5s',
+        duration: '10s',
     }
 }
 
@@ -103,59 +99,102 @@ export function setup() {
 
     // for e2e setup all endpoint using within it
 
-    const baseUrl = BASE_URL
-    let endpoint_login = `${baseUrl}/auth/login`
-    let endpoint_get_link_self = `${baseUrl}/links`
+    // let endpoint_login = `${BASE_URL}/auth/login` // login
+    // let endpoint_get_link_self = `${BASE_URL}/links/self` // get user all links data
+    // let endpoint_links = `${BASE_URL}/links` // post, patch, delete
+    // let endpoint_link_main = `${BASE_URL}/${SHORT_LINK}` // get link main
+
+    // if(DB_TYPE === 'mongo') endpoint = endpoint + 'db=mongo'
+
+    const endpoints = {
+        endpoint_login: `${BASE_URL}/auth/login`,
+        endpoint_get_link_self: `${BASE_URL}/links/self`,
+        endpoint_links: `${BASE_URL}/links`
+    };
+    
+    const addDBType = (url) => DB_TYPE === 'mongo' ? `${url}?db=mongo` : url
+    
+    const updatedEndpoints = Object.fromEntries(
+        Object.entries(endpoints).map(([key, value]) => [key, addDBType(value)])
+    );
+    
+    const { endpoint_login, endpoint_get_link_self, endpoint_links } = updatedEndpoints
+
 
     return {
-
+        endpoint_login, 
+        endpoint_get_link_self, 
+        endpoint_links
     }
 }
 
 export const options = SCENARIO
 
 export default function (data) {
-    let endpoint = BASE_URL
-    let endpoint_login
+    let { endpoint_login, endpoint_get_link_self, endpoint_links } = data
+    let id_url_created, headers, endpoint_link_main
 
-    endpoint = `${endpoint}/links?` 
+    const create_main_get_link = (short_link) => {
+        let url = BASE_URL + '/' + short_link
+        if(DB_TYPE === 'mongo') url = url + '?db=mongo'
+        return url
+    }
 
-    if(DB_TYPE === 'mongo') endpoint = endpoint + 'db=mongo'
-
-    const options = {
-        headers: {
-            Authorization: `Bearer ${JWT}`
+    const createHeader = (token) => {
+        return {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         }
     }
 
-    let id_created
+    group('1. Login', () => {
+        const res = http.post(
+            endpoint_login,
+            {
+                username: USERNAME,
+                password: PASSWORD
+            }
+        )
 
-    group('', () => {
-        if(!status) {
-            console.log('Failed to ')
-            return
-        } else id_created = res.json().data.inserted_id
-    })
+        const status = check(res, {
+            'is status 200': (r) => r.status == 200,
+        })
 
-    group('Login', () => {
         if(!status) {
             console.log('Failed to login')
             return
-        } else 
+        } else headers = createHeader(res.json().data.access_token)
     })
 
-    group('Create Link', () => {
+    group('2. Get Links Self Data', () => {
+        const res = http.get(
+            endpoint_get_link_self,
+            headers
+        )
+
+        const status = check(res, {
+            'is status 200': (r) => r.status == 200,
+        })
+
+        if(!status) {
+            console.log('Failed to get link self data')
+            return
+        }
+    })
+
+    group('3. Create Link', () => {
         let short_link = ''
         if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
 
         const res = http.post(
-            endpoint,
+            endpoint_links,
             {
                 long_url: LONG_LINK,
                 short_url: short_link,
                 custom_link: CUSTOM_LINK
             },
-            options
+            headers
         )
         
         const status = check(res, {
@@ -165,17 +204,74 @@ export default function (data) {
         if(!status) {
             console.log('Failed to create link')
             return
-        } else id_created = res.json().data.inserted_id
+        } else {
+            id_url_created = res.json().data.inserted_id
+            endpoint_link_main = create_main_get_link(res.json().data.short_url)
+        }
     })
 
+    group('4. Check Created Link 1', () => {
+        const res = http.get(
+            endpoint_link_main
+        )
 
-    group('Deleted Link', () => {
-        const res = http.del(
-            endpoint,
+        const status = check(res, {
+            'is status 200': (r) => r.status == 200,
+        })
+
+        if(!status) {
+            console.log('Failed to Check Link 1')
+            return
+        }
+    })
+
+    group('5. Edit Link Data', () => {
+        let short_link = ''
+        if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+
+        const res = http.patch(
+            endpoint_links,
             {
-                url_id: id_created,
+                url_id: id_url_created,
+                long_url: LONG_LINK,
+                short_url: short_link,
+                custom_link: CUSTOM_LINK
             },
-            options
+            headers
+        )
+        
+        const status = check(res, {
+            'is status 200': (r) => r.status == 200,
+        })
+
+        if(!status) {
+            console.log('Failed to ')
+            return
+        } else endpoint_link_main = create_main_get_link(res.json().data.short_url)
+    })
+
+    group('6. Check Created Link 2', () => {
+        const res = http.get(
+            endpoint_link_main
+        )
+
+        const status = check(res, {
+            'is status 200': (r) => r.status == 200,
+        })
+
+        if(!status) {
+            console.log('Failed to Check Link 2')
+            return
+        }
+    })
+
+    group('7. Deleted Link', () => {
+        const res = http.del(
+            endpoint_links,
+            {
+                url_id: id_url_created,
+            },
+            headers
         )
         
         const status = check(res, {

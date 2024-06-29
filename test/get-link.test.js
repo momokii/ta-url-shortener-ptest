@@ -17,7 +17,7 @@ SCENARIO_TYPE = __ENV.SCENARIO
 DB_TYPE = __ENV.DB_TYPE
 
 BASE_URL = __ENV.SERVICE
-if(BASE_URL === 'golang') endpoint = __ENV.ENDPOINT_GOLANG
+if(BASE_URL === 'golang') BASE_URL = __ENV.ENDPOINT_GOLANG
 else BASE_URL = __ENV.ENDPOINT_NODE
 
 // appendix env data for this scenario
