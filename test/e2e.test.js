@@ -11,7 +11,7 @@ export function handleSummary(data) {
 }
 
 let SCENARIO, SCENARIO_TYPE, DB_TYPE, BASE_URL // BASE ENV DATA
-let USER_TYPE, LONG_LINK, SHORT_LINK, CUSTOM_LINK, USERNAME, PASSWORD // APPENDIX ENV DATA
+let USER_TYPE, LONG_LINK, CUSTOM_LINK, USERNAME, PASSWORD // APPENDIX ENV DATA
 
 // base env data 
 SCENARIO_TYPE = __ENV.SCENARIO
@@ -98,13 +98,6 @@ export function setup() {
     console.log(`Start Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
 
     // for e2e setup all endpoint using within it
-
-    // let endpoint_login = `${BASE_URL}/auth/login` // login
-    // let endpoint_get_link_self = `${BASE_URL}/links/self` // get user all links data
-    // let endpoint_links = `${BASE_URL}/links` // post, patch, delete
-    // let endpoint_link_main = `${BASE_URL}/${SHORT_LINK}` // get link main
-
-    // if(DB_TYPE === 'mongo') endpoint = endpoint + 'db=mongo'
 
     const endpoints = {
         endpoint_login: `${BASE_URL}/auth/login`,
