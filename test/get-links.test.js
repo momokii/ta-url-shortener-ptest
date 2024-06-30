@@ -92,7 +92,7 @@ SCENARIO = {
 if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
-    console.log(`Start Testing with ${SCENARIO_TYPE} test, using service ${__ENV.SERVICE} base url ${BASE_URL} and db type ${DB_TYPE}`)   
+    console.log(`Start Get All Links Testing with ${SCENARIO_TYPE} test, using service ${__ENV.SERVICE} base url ${BASE_URL} and db type ${DB_TYPE}`)   
 }
 
 export const options = SCENARIO

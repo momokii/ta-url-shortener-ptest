@@ -95,7 +95,7 @@ SCENARIO = {
 if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
-    console.log(`Start Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
+    console.log(`Start E2E Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
 
     // for e2e setup all endpoint using within it
 
