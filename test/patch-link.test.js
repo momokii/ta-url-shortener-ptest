@@ -1,5 +1,5 @@
 import http from 'k6/http';
-import { check } from 'k6';
+import { check, sleep } from 'k6';
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 import { randomString } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 
@@ -86,7 +86,7 @@ const SCENARIOS = {
     smoke: {
         executor: 'constant-vus',
         vus: 5,
-        duration: '5s',
+        duration: '10s',
     }
 }
 
@@ -106,7 +106,7 @@ SCENARIO = {
     }
 }
 
-if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
+if(SCENARIO_TYPE === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
     console.log(`Start Edit Short Link Data Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
@@ -127,17 +127,21 @@ export default function () {
         }
     }
 
-    let short_link = ''
+    let short_link = 'test123'
     if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+
+    let body = {
+        url_id: URL_ID,
+        long_url: LONG_LINK,
+        short_url: short_link,
+        custom_link: CUSTOM_LINK
+    }
+
+    if(__ENV.SERVICE === 'golang') body = JSON.stringify(body)
 
     const res = http.patch(
         endpoint,
-        {
-            url_id: URL_ID,
-            long_url: LONG_LINK,
-            short_url: short_link,
-            custom_link: CUSTOM_LINK
-        },
+        body,
         options
     )
     

@@ -89,7 +89,7 @@ SCENARIO = {
     }
 }
 
-if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
+if(SCENARIO_TYPE === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
     console.log(`Start Login Testing with ${SCENARIO_TYPE} test, using service ${__ENV.SERVICE} base url ${BASE_URL} and db type ${DB_TYPE}`)   
@@ -100,16 +100,22 @@ export const options = SCENARIO
 export default function () {
     let endpoint = BASE_URL
 
-    endpoint = `${endpoint}/auth/login?` 
+    endpoint = `${endpoint}/auth/login` 
 
-    if(DB_TYPE === 'mongo') endpoint = endpoint + 'db=mongo'
+    if(DB_TYPE === 'mongo') endpoint = endpoint + '?db=mongo'
+
+
+    let body = {
+        username: USERNAME,
+        password: PASSWORD
+    
+    }
+
+    if(__ENV.SERVICE === 'golang') body = JSON.stringify(body)
 
     const res = http.post(
         endpoint,
-        {
-            username: USERNAME,
-            password: PASSWORD
-        }
+        body
     )
     
     check(res, {

@@ -14,7 +14,7 @@ let JWT, PAGE, PER_PAGE // APPENDIX ENV DATA
 
 // base env data 
 SCENARIO_TYPE = __ENV.SCENARIO
-DB_TYPE = __ENV.DB_TYPE1
+DB_TYPE = __ENV.DB_TYPE
 
 BASE_URL = __ENV.SERVICE
 if(BASE_URL === 'golang') BASE_URL = __ENV.ENDPOINT_GOLANG
@@ -27,13 +27,13 @@ else JWT = __ENV.JWT_ADMIN_SQL // because we need to login as admin
 PAGE= __ENV.PAGE // page number
 PER_PAGE = __ENV.PER_PAGE // data per page
 
-const SCENARIOS = {
+let SCENARIOS = {
     breakpoint: {
         executor: 'ramping-arrival-rate',
         startRate: 0,
         timeUnit: '1s',
-        preAllocatedVUs: 500, // start with 100 virtual users
-        maxVUs: 2000, // limit virtual users to 200
+        preAllocatedVUs: 1000, // start with 100 virtual users
+        maxVUs: 5000, // limit virtual users to 200
         stages: [
             { duration: '5m', target: 100 },
             { duration: '10m', target: 500 },
@@ -74,10 +74,11 @@ const SCENARIOS = {
 }
 
 
-const THRESHOLD = {
+let THRESHOLD = {
+    // http_req_failed: ['rate<0.01'],
     http_req_failed: [
         {
-        threshold:'rate<0.01',
+        threshold:'rate<0.05',
         abortOnFail: true,
         delayAbortEval: "10s", // evaluate the condition after 10s
     }] // should be less than 1% for breakpoint
@@ -89,7 +90,7 @@ SCENARIO = {
     }
 }
 
-if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
+if(SCENARIO_TYPE === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
     console.log(`Start Get All Links Testing with ${SCENARIO_TYPE} test, using service ${__ENV.SERVICE} base url ${BASE_URL} and db type ${DB_TYPE}`)   

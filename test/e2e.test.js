@@ -92,7 +92,7 @@ SCENARIO = {
     }
 }
 
-if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
+if(SCENARIO_TYPE === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
     console.log(`Start E2E Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
@@ -127,6 +127,8 @@ export default function (data) {
     let { endpoint_login, endpoint_get_link_self, endpoint_links } = data
     let id_url_created, headers, endpoint_link_main
 
+    const SERVICE = __ENV.SERVICE
+
     const create_main_get_link = (short_link) => {
         let url = BASE_URL + '/' + short_link
         if(DB_TYPE === 'mongo') url = url + '?db=mongo'
@@ -142,12 +144,16 @@ export default function (data) {
     }
 
     group('1. Login', () => {
+        let body = {
+            username: USERNAME,
+            password: PASSWORD
+        }
+
+        if (SERVICE === 'golang') body = JSON.stringify(body)
+
         const res = http.post(
             endpoint_login,
-            {
-                username: USERNAME,
-                password: PASSWORD
-            }
+            body
         )
 
         const status = check(res, {
@@ -177,16 +183,20 @@ export default function (data) {
     })
 
     group('3. Create Link', () => {
-        let short_link = ''
+        let short_link = __ENV.SHORT_LINK
         if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+
+        let body = {
+            long_url: LONG_LINK,
+            short_url: short_link,
+            custom_link: CUSTOM_LINK
+        }
+
+        if (SERVICE === 'golang') body = JSON.stringify(body)
 
         const res = http.post(
             endpoint_links,
-            {
-                long_url: LONG_LINK,
-                short_url: short_link,
-                custom_link: CUSTOM_LINK
-            },
+            body,
             headers
         )
         
@@ -219,17 +229,21 @@ export default function (data) {
     })
 
     group('5. Edit Link Data', () => {
-        let short_link = ''
+        let short_link = __ENV.SHORT_LINK
         if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+
+        let body = {
+            url_id: id_url_created,
+            long_url: LONG_LINK,
+            short_url: short_link,
+            custom_link: CUSTOM_LINK
+        }
+
+        if (SERVICE === 'golang') body = JSON.stringify(body)
 
         const res = http.patch(
             endpoint_links,
-            {
-                url_id: id_url_created,
-                long_url: LONG_LINK,
-                short_url: short_link,
-                custom_link: CUSTOM_LINK
-            },
+            body,
             headers
         )
         
@@ -259,11 +273,15 @@ export default function (data) {
     })
 
     group('7. Deleted Link', () => {
+        let body = {
+            url_id: id_url_created,
+        }
+
+        if (SERVICE === 'golang') body = JSON.stringify(body)
+
         const res = http.del(
             endpoint_links,
-            {
-                url_id: id_url_created,
-            },
+            body,
             headers
         )
         

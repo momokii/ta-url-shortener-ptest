@@ -11,7 +11,7 @@ export function handleSummary(data) {
 }
 
 let SCENARIO, SCENARIO_TYPE, DB_TYPE, BASE_URL // BASE ENV DATA
-let JWT, USER_TYPE, LONG_LINK, CUSTOM_LINK // APPENDIX ENV DATA
+let JWT, USER_TYPE, LONG_LINK, CUSTOM_LINK, SERVICE // APPENDIX ENV DATA
 
 // base env data 
 SCENARIO_TYPE = __ENV.SCENARIO
@@ -20,6 +20,8 @@ DB_TYPE = __ENV.DB_TYPE
 BASE_URL = __ENV.SERVICE
 if(BASE_URL === 'golang') BASE_URL = __ENV.ENDPOINT_GOLANG
 else BASE_URL = __ENV.ENDPOINT_NODE
+
+SERVICE = __ENV.SERVICE
 
 // appendix env data for this scenario
 USER_TYPE = __ENV.USER_TYPE
@@ -76,7 +78,7 @@ const SCENARIOS = {
     smoke: {
         executor: 'constant-vus',
         vus: 5,
-        duration: '5s',
+        duration: '10s',
     }
 }
 
@@ -96,7 +98,7 @@ SCENARIO = {
     }
 }
 
-if(SCENARIO === 'breakpoint') SCENARIO.thresholds = THRESHOLD
+if(SCENARIO_TYPE === 'breakpoint') SCENARIO.thresholds = THRESHOLD
 
 export function setup() {
     console.log(`Start Delete Short Link Data Testing with ${SCENARIO_TYPE} test, using service: ${__ENV.SERVICE} base url: ${BASE_URL} db type: ${DB_TYPE} with type user: ${USER_TYPE}`)   
@@ -120,16 +122,20 @@ export default function () {
     let id_created
 
     group('Create Link', () => {
-        let short_link = ''
+        let short_link = __ENV.SHORT_LINK
         if(CUSTOM_LINK) short_link = randomString(5, 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890')
+
+        let body = {
+            long_url: LONG_LINK,
+            short_url: short_link,
+            custom_link: CUSTOM_LINK
+        }
+
+        if (SERVICE === 'golang') body = JSON.stringify(body)
 
         const res = http.post(
             endpoint,
-            {
-                long_url: LONG_LINK,
-                short_url: short_link,
-                custom_link: CUSTOM_LINK
-            },
+            body,
             options
         )
         
@@ -145,11 +151,15 @@ export default function () {
 
 
     group('Deleted Link', () => {
+        let body = {
+            url_id: id_created,
+        }
+
+        if (__ENV.SERVICE === 'golang') body = JSON.stringify(body)
+
         const res = http.del(
             endpoint,
-            {
-                url_id: id_created,
-            },
+            body,
             options
         )
         
